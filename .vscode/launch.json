@@ -1,0 +1,31 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "STM32F407 Debug",
+
+            "cwd": "${workspaceRoot}",
+
+            "type": "cortex-debug",
+
+            "request": "launch",
+
+            "servertype": "openocd",
+
+            "device": "STM32F407VG",
+
+            "interface": "swd",
+
+            "runToEntryPoint": "main",
+
+            "executable": "${workspaceFolder}/output/stm32f407xxx_driver.elf",
+
+            "configFiles": [
+                "interface/stlink.cfg",
+                "target/stm32f4x.cfg"
+            ],
+
+            "svdFile": "${workspaceFolder}/Target/STM32F407XXX/STM32F407.svd"
+        }
+    ]
+}
