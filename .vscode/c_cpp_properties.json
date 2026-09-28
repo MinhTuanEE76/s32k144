@@ -5,6 +5,7 @@
             "includePath": [
                 "${workspaceFolder}/Intergration",
                 "${workspaceFolder}/driver/Mcu",
+                "${workspaceFolder}/driver/Gpt",
                 "${workspaceFolder}/include"
             ],
             "defines": [
@@ -17,7 +18,8 @@
                 "path": [
                     "${workspaceFolder}/Intergration",
                     "${workspaceFolder}/driver/Mcu",
-                    "${workspaceFolder}/include"
+                    "${workspaceFolder}/include",
+                    "${workspaceFolder}/driver/Gpt"
                 ]
             }
         }

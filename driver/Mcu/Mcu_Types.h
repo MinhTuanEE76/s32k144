@@ -3,19 +3,14 @@
 
 #include "Std_Types.h"
 
-
-/* -------------------------------------------------------------------------- */
-/* Type Definition by AUTOSAR                                                 */
-/* -------------------------------------------------------------------------- */
-
-/**
- * @brief MCU clock configuration index type.
- */
+/*--------------------------------------------------------------------------------------- */
+/*----------------------Type Definition by AUTOSAR----------------------------------------*/
+/*--------------------------------------------------------------------------------------- */
+/**/
 typedef uint8 Mcu_ClockType;
 
-
 /**
- * @brief Status value returned by Mcu_GetPllStatus().
+ * @brief: This is a status value returned by the function Mcu_GetPllStatus of the MCU module
  */
 typedef enum
 {
@@ -25,11 +20,9 @@ typedef enum
 
 } Mcu_PllStatusType;
 
-
 /**
- * @brief Reset type supported by the MCU module.
- *
- * It is not required that all reset types are supported by hardware.
+ * @brief: This is the type of the reset enumerator containing the subset of reset types. It is not
+ *         required that all reset types are supported by hardware.
  */
 typedef enum
 {
@@ -37,45 +30,37 @@ typedef enum
     MCU_WATCHDOG_RESET,
     MCU_SW_RESET,
     MCU_RESET_UNDEFINED
-
 } Mcu_ResetType;
 
-
-/**
- * @brief Raw reset value.
- */
+/**/
 typedef uint8 Mcu_RawResetType;
 
-
-/**
- * @brief MCU mode type.
- */
+/**/
 typedef uint8 Mcu_ModeType;
 
-
-/**
- * @brief RAM section type.
- */
+/**/
 typedef uint8 Mcu_RamSectionType;
 
-
-/**
- * @brief RAM state.
- */
 typedef enum
 {
     MCU_RAMSTATE_INVALID = 0x00U,
     MCU_RAMSTATE_VALID
-
 } Mcu_RamStateType;
 
+/*--------------------------------------------------------------------------------------- */
+/*----------------------Type Definition by user-------------------------------------------*/
+/*--------------------------------------------------------------------------------------- */
 
-/* -------------------------------------------------------------------------- */
-/* Type Definition by User                                                    */
-/* -------------------------------------------------------------------------- */
+typedef enum
+{
+    MCU_NORMAL_RUN_MODE = 0U,
+    MCU_VERY_LOW_POWER_RUN_MODE,
+    MCU_HIGH_SPEED_RUN_MODE,
+    MCU_INVALID_MODE
+} Mcu_PowerModeType;
 
 /**
- * @brief System clock source selection.
+ * 
  */
 typedef enum
 {
@@ -83,84 +68,67 @@ typedef enum
     MCU_SYSCLK_FIRC = 2U,
     MCU_SYSCLK_SOSC = 3U,
     MCU_SYSCLK_SPLL = 6U
-
 } Mcu_SystemClockSourceType;
 
-
 /**
- * @brief SPLL clock source selection.
+ * 
  */
 typedef enum
 {
     MCU_SPLL_SOURCE_SOSC,
     MCU_SPLL_SOURCE_FIRC
-
 } Mcu_SpllClockSourceType;
 
-
 /**
- * @brief SOSC reference type.
+ * 
  */
 typedef enum
 {
     MCU_SOSC_EXTERNAL_CLOCK = 0x00U,
     MCU_SOSC_CRYSTAL_OSC
-
 } Mcu_SoscExternalReferenceType;
 
-
 /**
- * @brief SPLL clock configuration.
+ * 
  */
 typedef struct
 {
     Mcu_SpllClockSourceType SpllClockSource;
-    uint8                   PreDivider;
-    uint8                   Multiplier;
+    uint8 PreDivider;
+    uint8 Multiplier;
 } Mcu_SpllConfigType;
 
-
 /**
- * @brief SOSC clock configuration.
+ * 
  */
 typedef struct
 {
     Mcu_SoscExternalReferenceType ReferenceType;
-    uint32                        FrequencyHz;
-    uint32                        StartupTimeout;
-
+    uint32 FrequencyHz;
 } Mcu_SoscConfigType;
 
-
 /**
- * @brief MCU clock setting configuration.
- *
- * SpllClockConfig is only used when SystemClockSource is
- * set to MCU_SYSCLK_SPLL.
+ * @brief: Mcu_ClockSettingConfigType
  */
 typedef struct
 {
     Mcu_SystemClockSourceType SystemClockSource;
-    Mcu_SpllConfigType        SpllClockConfig;
+    Mcu_SpllConfigType        SpllClockConfig; //this field only used when SystemClockSource = MCU_SYSCLK_SPLL
     Mcu_SoscConfigType        SoscClockConfig;
 
     uint8 CoreDivider;
     uint8 BusDivider;
     uint8 SlowDivider;
-
 } Mcu_ClockSettingConfigType;
 
-
 /**
- * @brief Structure holding the MCU driver configuration.
+ * @brief: A structure to hold the MCU driver configuration.
  */
 typedef struct
 {
     const Mcu_ClockSettingConfigType *ClockConfigPtr;
-    Mcu_ClockType                     ClockSettingId;
-    uint8                             ClockConfigCount;
-
+    Mcu_ClockType ClockConfigCount;
 } Mcu_ConfigType;
 
 
-#endif /* __MCUTYPES_H__ */
+#endif

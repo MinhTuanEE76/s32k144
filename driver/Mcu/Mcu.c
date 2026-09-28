@@ -5,41 +5,189 @@
 
 #include "S32K144.h"
 
+/*Marco for enabling SOSC */
+#define MCU_ENABLE_SOSC()                                                        \
+    do                                                                           \
+    {                                                                            \
+        IP_SCG->SOSCCSR &= ~SCG_SOSCCSR_LK_MASK;                                \
+        IP_SCG->SOSCCSR |= SCG_SOSCCSR_SOSCEN(1U);                               \
+        while (!(IP_SCG->SOSCCSR & SCG_SOSCCSR_SOSCVLD_MASK))                  \
+        {                                                                        \
+            /* Wait until SOSC is valid */                                      \
+        }                                                                        \
+        IP_SCG->SOSCCSR |= SCG_SOSCCSR_LK_MASK;                                 \
+    } while (0)
+
+/*Macro for disabling SOSC */
+#define MCU_DISABLE_SOSC()                                                       \
+    do                                                                           \
+    {                                                                            \
+        IP_SCG->SOSCCSR &= ~SCG_SOSCCSR_LK_MASK;                                \
+        IP_SCG->SOSCCSR &= ~SCG_SOSCCSR_SOSCEN_MASK;                            \
+        IP_SCG->SOSCCSR |= SCG_SOSCCSR_LK_MASK;                                 \
+    } while (0)
+
+
+/*Marco for enabling FIRC */
+#define MCU_ENABLE_FIRC()                                                        \
+    do                                                                           \
+    {                                                                            \
+        IP_SCG->FIRCCSR &= ~SCG_FIRCCSR_LK_MASK;                                \
+        IP_SCG->FIRCCSR |= SCG_FIRCCSR_FIRCEN(1U);                              \
+        while (!(IP_SCG->FIRCCSR & SCG_FIRCCSR_FIRCVLD_MASK))                  \
+        {                                                                        \
+            /* Wait until FIRC is valid */                                      \
+        }                                                                        \
+        IP_SCG->FIRCCSR |= SCG_FIRCCSR_LK_MASK;                                  \
+    } while (0)
+
+/*Marco for disabling FIRC */
+#define MCU_DISABLE_FIRC()                                                       \
+    do                                                                           \
+    {                                                                            \
+        IP_SCG->FIRCCSR &= ~SCG_FIRCCSR_LK_MASK;                                \
+        IP_SCG->FIRCCSR &= ~SCG_FIRCCSR_FIRCEN_MASK;                            \
+        IP_SCG->FIRCCSR |= SCG_FIRCCSR_LK_MASK;                                 \
+    } while (0)
+
+/*Marco for enabling SIRC */
+#define MCU_ENABLE_SIRC()                                                        \
+    do                                                                           \
+    {                                                                            \
+        IP_SCG->SIRCCSR &= ~SCG_SIRCCSR_LK_MASK;                                \
+        IP_SCG->SIRCCSR |= SCG_SIRCCSR_SIRCEN(1U);                              \
+        while (!(IP_SCG->SIRCCSR & SCG_SIRCCSR_SIRCVLD_MASK))                  \
+        {                                                                        \
+            /* Wait until SIRC is valid */                                      \
+        }                                                                        \
+        IP_SCG->SIRCCSR |= SCG_SIRCCSR_LK_MASK;                                  \
+    } while (0)
+
+/*Marco for disabling SIRC */
+#define MCU_DISABLE_SIRC()                                                       \
+    do                                                                           \
+    {                                                                            \
+        IP_SCG->SIRCCSR &= ~SCG_SIRCCSR_LK_MASK;                                \
+        IP_SCG->SIRCCSR &= ~SCG_SIRCCSR_SIRCEN_MASK;                            \
+        IP_SCG->SIRCCSR |= SCG_SIRCCSR_LK_MASK;                                 \
+    } while (0)
+
+/*Marco for enabling SPLL */
+#define MCU_ENABLE_SPLL()                                                        \
+    do                                                                           \
+    {                                                                            \
+        IP_SCG->SPLLCSR &= ~SCG_SPLLCSR_LK_MASK;                                \
+        IP_SCG->SPLLCSR |= SCG_SPLLCSR_SPLLEN(1U);                              \
+        while (!(IP_SCG->SPLLCSR & SCG_SPLLCSR_SPLLVLD_MASK))                  \
+        {                                                                        \
+            /* Wait until SPLL is valid */                                      \
+        }                                                                        \
+        IP_SCG->SPLLCSR |= SCG_SPLLCSR_LK_MASK;                                 \
+    } while (0)
+
+/*Marco for disabling SPLL */
+#define MCU_DISABLE_SPLL()                                                       \
+    do                                                                           \
+    {                                                                            \
+        IP_SCG->SPLLCSR &= ~SCG_SPLLCSR_LK_MASK;                                \
+        IP_SCG->SPLLCSR &= ~SCG_SPLLCSR_SPLLEN_MASK;                            \
+        IP_SCG->SPLLCSR |= SCG_SPLLCSR_LK_MASK;                                 \
+    } while (0)
+
+
+
 static const Mcu_ConfigType *Mcu_ConfigPtr = NULL_PTR;
 
 Mcu_StatusType Mcu_Status = MCU_UNINIT;
-Mcu_PllStatusType Pll_Status = MCU_PLL_STATUS_UNDEFINED;
+Mcu_PowerModeType Mcu_PowerModeStatus = MCU_NORMAL_RUN_MODE; //S32K144 default run FIRC
+
+Mcu_SystemClockSourceType Mcu_PreviousRunClockSource;
+
 
 /* -------------------------------------------------------------------------- */
 /* Static Function Helpers                                                   */
 /* -------------------------------------------------------------------------- */
 
+
 /**
- * @brief Configure SPLL clock.
- *
- * @param[in] SpllConfig Pointer to SPLL configuration.
- * @note configure SpllSource, PreDivider and Multiplier.
- * @return E_OK     Configuration successful.
- * @return E_NOT_OK Configuration failed.
+ * @param SoscConfig
+ * @note  Configure RANGE and select source for SOSC block (RANG & EREFS) not Enbale SOSC in this function
  */
-static inline Std_ReturnType Mcu_lConfigureSpllClock(Mcu_SpllConfigType *SpllConfig)
+static inline Std_ReturnType Mcu_lConfigureSoscClock(const Mcu_SoscConfigType *SoscConfig)
 {
-    /* Defensive check */
-    if((SpllConfig == NULL_PTR) || (Mcu_Status == MCU_UNINIT))
+    if((SoscConfig == NULL_PTR) || (Mcu_Status == MCU_UNINIT))
     {
         return E_NOT_OK;
     }
 
-    IP_SCG->SPLLCFG |= SpllConfig->SpllClockSource;
-
-    IP_SCG->SPLLCFG &= ~SCG_SPLLCFG_PREDIV_MASK;
-    IP_SCG->SPLLCFG |= (SpllConfig->PreDivider << SCG_SPLLCFG_PREDIV_SHIFT);
-
-    IP_SCG->SPLLCFG &= ~SCG_SPLLCFG_MULT_MASK;
-    IP_SCG->SPLLCFG |= (SpllConfig->Multiplier << SCG_SPLLCFG_MULT_SHIFT);
+    if(SoscConfig->ReferenceType == MCU_SOSC_CRYSTAL_OSC)
+    {
+        // Set the SOSC range and reference type for crystal oscillator
+        IP_SCG->SOSCCFG |= SCG_SOSCCFG_RANGE(1U);
+        IP_SCG->SOSCCFG |= SCG_SOSCCFG_EREFS(1U);
+    }
+    else
+    {
+        // Set the SOSC range and reference type for external clock
+        IP_SCG->SOSCCFG &= ~SCG_SOSCCFG_RANGE_MASK;
+        IP_SCG->SOSCCFG &= ~SCG_SOSCCFG_EREFS_MASK;
+    }
 
     return E_OK;
 }
+
+/**
+ * @brief Configure SPLL clock.
+ *
+ * @param[in] SysclkConfig Pointer to sysclk configuration.
+ * @note Define Spll clock will be using SOSC or FIRC. Configure SpllSource, PreDivider and Multiplier.
+ * @return E_OK     Configuration successful.
+ * @return E_NOT_OK Configuration failed.
+ */
+static inline Std_ReturnType Mcu_lConfigureSpllClock(const Mcu_ClockSettingConfigType *SysclkConfig)
+{
+    /* Defensive check */
+    if((SysclkConfig == NULL_PTR) || (Mcu_Status == MCU_UNINIT))
+    {
+        return E_NOT_OK;
+    }
+
+    /*Configure SPLL clock source */
+    if (SysclkConfig->SpllClockConfig.SpllClockSource == MCU_SPLL_SOURCE_SOSC)
+    {
+        if(Mcu_lConfigureSoscClock(&SysclkConfig->SoscClockConfig) != E_OK)
+        {
+            return E_NOT_OK;
+        }
+
+        MCU_ENABLE_SOSC();
+    }
+    else if(SysclkConfig->SpllClockConfig.SpllClockSource == MCU_SPLL_SOURCE_FIRC)
+    {
+        /*Enable FIRC*/
+        MCU_ENABLE_FIRC();
+    }
+    else
+    {
+        //not SOSC and FIRC -> not valid
+        return E_NOT_OK;
+    }
+
+    /*Prediv SPLL Clock In*/
+    IP_SCG->SPLLCFG &= ~SCG_SPLLCFG_PREDIV_MASK;
+    IP_SCG->SPLLCFG |= (SysclkConfig->SpllClockConfig.PreDivider << SCG_SPLLCFG_PREDIV_SHIFT);
+
+    /*Multiplier After Prediv*/
+    IP_SCG->SPLLCFG &= ~SCG_SPLLCFG_MULT_MASK;
+    IP_SCG->SPLLCFG |= (SysclkConfig->SpllClockConfig.Multiplier << SCG_SPLLCFG_MULT_SHIFT);
+
+    /*Select SPLL Clock Source*/
+    IP_SCG->SPLLCFG |= SysclkConfig->SpllClockConfig.SpllClockSource;
+
+    return E_OK;
+}
+
+
 
 /**
  * @brief: Enable SIRC as a system clock source.
@@ -52,32 +200,20 @@ static inline Std_ReturnType Mcu_lInitSystemClock_SIRC(const Mcu_ClockSettingCon
     }
 
     /* Enable SIRC */
-    IP_SCG->SIRCCSR &= ~SCG_SIRCCSR_LK_MASK;
-    IP_SCG->SIRCCSR |= SCG_SIRCCSR_SIRCEN(1U);
-
-    while (!(IP_SCG->SIRCCSR & SCG_SIRCCSR_SIRCVLD_MASK))
-    {
-        // do nothing wait SIRC valid
-    }
-    /* Lock configuration */
-    IP_SCG->SIRCCSR |= (SCG_SIRCCSR_LK_MASK << SCG_SIRCCSR_LK_SHIFT);
+    MCU_ENABLE_SIRC();
 
     /* Configure dividers */
-    IP_SCG->RCCR &= ~SCG_RCCR_DIVCORE_MASK;
-    IP_SCG->RCCR |= (SysclkConfig->CoreDivider << SCG_RCCR_DIVCORE_SHIFT);
+    uint32 RegValue = 0U;
 
-    IP_SCG->RCCR &= ~SCG_RCCR_DIVBUS_MASK;
-    IP_SCG->RCCR |= (SysclkConfig->BusDivider << SCG_RCCR_DIVBUS_SHIFT);
+    RegValue |= SCG_RCCR_SCS(SysclkConfig->SystemClockSource);
+    RegValue |= SCG_RCCR_DIVCORE(SysclkConfig->CoreDivider);
+    RegValue |= SCG_RCCR_DIVBUS(SysclkConfig->BusDivider);
+    RegValue |= SCG_RCCR_DIVSLOW(SysclkConfig->SlowDivider);
 
-    IP_SCG->RCCR &= ~SCG_RCCR_DIVSLOW_MASK;
-    IP_SCG->RCCR |= (SysclkConfig->SlowDivider << SCG_RCCR_DIVSLOW_SHIFT);
-
-    /* Switch system clock to SIRC*/
-    IP_SCG->RCCR &= ~SCG_RCCR_SCS_MASK;
-    IP_SCG->RCCR |= (MCU_SYSCLK_SIRC << SCG_RCCR_SCS_SHIFT);
+    IP_SCG->RCCR = RegValue;
 
     /* Wait until SIRC is selected as the system clock source */
-    while(!(IP_SCG->SIRCCSR & SCG_SIRCCSR_SIRCSEL_MASK))
+    while((IP_SCG->CSR & SCG_CSR_SCS_MASK) != SCG_CSR_SCS(MCU_SYSCLK_SIRC))
     {
         // do nothing wait SIRC selected
     }
@@ -96,8 +232,7 @@ static inline Std_ReturnType Mcu_lInitSystemClock_FIRC(const Mcu_ClockSettingCon
     }
 
     /* Enable FIRC */
-    IP_SCG->FIRCCSR &= ~SCG_FIRCCSR_LK_MASK;
-    IP_SCG->FIRCCSR |= SCG_FIRCCSR_FIRCEN(1U);
+    MCU_ENABLE_FIRC();
 
     while ((IP_SCG->FIRCCSR & SCG_FIRCCSR_FIRCVLD_MASK) == 0U)
     {
@@ -107,22 +242,17 @@ static inline Std_ReturnType Mcu_lInitSystemClock_FIRC(const Mcu_ClockSettingCon
     /* Lock configuration */
     IP_SCG->FIRCCSR |= (SCG_FIRCCSR_LK_MASK << SCG_FIRCCSR_LK_SHIFT);
 
-    /* Configure dividers */
-    IP_SCG->RCCR &= ~SCG_RCCR_DIVCORE_MASK;
-    IP_SCG->RCCR |= (SysclkConfig->CoreDivider << SCG_RCCR_DIVCORE_SHIFT);
+    uint32 RegValue = 0U;
 
-    IP_SCG->RCCR &= ~SCG_RCCR_DIVBUS_MASK;
-    IP_SCG->RCCR |= (SysclkConfig->BusDivider << SCG_RCCR_DIVBUS_SHIFT);
+    RegValue |= SCG_RCCR_SCS(MCU_SYSCLK_FIRC);
+    RegValue |= SCG_RCCR_DIVCORE(SysclkConfig->CoreDivider);
+    RegValue |= SCG_RCCR_DIVBUS(SysclkConfig->BusDivider);
+    RegValue |= SCG_RCCR_DIVSLOW(SysclkConfig->SlowDivider);
 
-    IP_SCG->RCCR &= ~SCG_RCCR_DIVSLOW_MASK;
-    IP_SCG->RCCR |= (SysclkConfig->SlowDivider << SCG_RCCR_DIVSLOW_SHIFT);
-
-    /*switch FIRC to system clock*/
-    IP_SCG->RCCR &= ~SCG_RCCR_SCS_MASK;
-    IP_SCG->RCCR |= (MCU_SYSCLK_FIRC << SCG_RCCR_SCS_SHIFT);
+    IP_SCG->RCCR = RegValue;
 
     /* Wait until FIRC is selected as the system clock source */
-    while(!(IP_SCG->FIRCCSR & SCG_FIRCCSR_FIRCSEL_MASK))
+    while((IP_SCG->CSR & SCG_CSR_SCS_MASK) != SCG_CSR_SCS(MCU_SYSCLK_FIRC))
     {
         // do nothing wait FIRC selected
     }
@@ -139,33 +269,28 @@ static inline Std_ReturnType Mcu_lInitSystemClock_SOSC(const Mcu_ClockSettingCon
     {
         return E_NOT_OK;
     }
-    /*Enable SOSC*/
-    IP_SCG->SOSCCSR &= ~SCG_SOSCCSR_LK_MASK;
-    IP_SCG->SOSCCSR |= SCG_SOSCCSR_SOSCEN(1U);
 
-    while(!(IP_SCG->SOSCCSR & SCG_SOSCCSR_SOSCVLD_MASK))
+    /*Configure SOSC*/
+    if(Mcu_lConfigureSoscClock(&SysclkConfig->SoscClockConfig) != E_OK)
     {
-        // do nothing wait SOSC valid
+        return E_NOT_OK;
     }
 
-    IP_SCG->SOSCCSR |= SCG_SOSCCSR_LK_MASK; // lock SOSC configuration
+    /*Enable SOSC*/
+    MCU_ENABLE_SOSC();
 
     /* Configure dividers */
-    IP_SCG->RCCR &= ~SCG_RCCR_DIVCORE_MASK;
-    IP_SCG->RCCR |= (SysclkConfig->CoreDivider << SCG_RCCR_DIVCORE_SHIFT);
+    uint32 RegValue = 0U;
 
-    IP_SCG->RCCR &= ~SCG_RCCR_DIVBUS_MASK;
-    IP_SCG->RCCR |= (SysclkConfig->BusDivider << SCG_RCCR_DIVBUS_SHIFT);
+    RegValue |= SCG_RCCR_SCS(SysclkConfig->SystemClockSource);
+    RegValue |= SCG_RCCR_DIVCORE(SysclkConfig->CoreDivider);
+    RegValue |= SCG_RCCR_DIVBUS(SysclkConfig->BusDivider);
+    RegValue |= SCG_RCCR_DIVSLOW(SysclkConfig->SlowDivider);
 
-    IP_SCG->RCCR &= ~SCG_RCCR_DIVSLOW_MASK;
-    IP_SCG->RCCR |= (SysclkConfig->SlowDivider << SCG_RCCR_DIVSLOW_SHIFT);
-
-    /* Switch system clock to FIRC */
-    IP_SCG->RCCR &= ~SCG_RCCR_SCS_MASK;
-    IP_SCG->RCCR |= (SysclkConfig->SystemClockSource << SCG_RCCR_SCS_SHIFT);
+    IP_SCG->RCCR = RegValue;
 
     /* Wait until SOSC is selected as the system clock source */
-    while(!(IP_SCG->SOSCCSR & SCG_SOSCCSR_SOSCSEL_MASK))
+    while((IP_SCG->CSR & SCG_CSR_SCS_MASK) != SCG_CSR_SCS(MCU_SYSCLK_SOSC))
     {
         // do nothing wait SOSC selected
     }
@@ -178,35 +303,213 @@ static inline Std_ReturnType Mcu_lInitSystemClock_SOSC(const Mcu_ClockSettingCon
  */
 static inline Std_ReturnType Mcu_lInitSystemClock_SPLL(const Mcu_ClockSettingConfigType *SysclkConfig)
 {
+    if(SysclkConfig == NULL_PTR)
+    {
+        return E_NOT_OK;
+    }
+
     /*Configure SPLL*/
-    if(Mcu_lConfigureSpllClock(&SysclkConfig->SpllClockConfig) != E_OK)
+    if(Mcu_lConfigureSpllClock(SysclkConfig) != E_OK)
     {
         return E_NOT_OK;
     }
 
     /*Enable SPLL*/
-    IP_SCG->SPLLCSR &= ~SCG_SPLLCSR_LK_MASK;
-    IP_SCG->SPLLCSR |= SCG_SPLLCSR_SPLLEN(1U);
+    MCU_ENABLE_SPLL();
 
-    while(!(IP_SCG->SPLLCSR & SCG_SPLLCSR_SPLLVLD_MASK))
+    /*Configure Dividers but not yet switch SPLL as a system clock source
+     *We will switch SPLL as a system clock source in Mcu_DistributePllClock()
+      function after SPLL is locked
+     */
+    uint32 RegValue = 0U;
+    
+    RegValue |= SCG_RCCR_DIVCORE(SysclkConfig->CoreDivider);
+    RegValue |= SCG_RCCR_DIVBUS(SysclkConfig->BusDivider);
+    RegValue |= SCG_RCCR_DIVSLOW(SysclkConfig->SlowDivider);
+
+    IP_SCG->RCCR = RegValue;
+    
+    return E_OK;
+}
+
+/**
+ * 
+ */
+static inline void Mcu_lConfigureVeryLowPowerRunClock(void)
+{
+    uint32 RegValue = 0U;
+
+    RegValue |= SCG_VCCR_DIVCORE(MCU_CLOCK_CORE_DIV1);
+    RegValue |= SCG_VCCR_DIVBUS(MCU_CLOCK_BUS_DIV2);
+    RegValue |= SCG_VCCR_DIVSLOW(MCU_CLOCK_SLOW_DIV4);
+    RegValue |= SCG_VCCR_SCS(MCU_SYSCLK_SIRC);
+
+    IP_SCG->VCCR = RegValue;
+}
+
+/**
+ * 
+ */
+static inline Mcu_SystemClockSourceType Mcu_lGetCurrentSystemClockSource(void)
+{
+    return (Mcu_SystemClockSourceType)((IP_SCG->CSR & SCG_CSR_SCS_MASK) >> SCG_CSR_SCS_SHIFT);
+}
+
+/**
+ * 
+ */
+static Std_ReturnType Mcu_lSwitchVeryLowPowerRun_To_NormalRun(void)
+{
+    /* Current mode must actually be VLPR */
+    if ((IP_SMC->PMSTAT & SMC_PMSTAT_PMSTAT_MASK)  != MCU_PMSTAT_VLPR)
     {
-        // do nothing wait SPLL valid
+        return E_NOT_OK;
     }
 
-    IP_SCG->SPLLCSR |= SCG_SPLLCSR_LK_MASK;//lock SPLL configuration
+    /* Request Normal RUN */
+    IP_SMC->PMCTRL =(IP_SMC->PMCTRL & ~SMC_PMCTRL_RUNM_MASK) | SMC_PMCTRL_RUNM(0U);
 
-    IP_SCG->RCCR &= ~SCG_RCCR_DIVCORE_MASK;
-    IP_SCG->RCCR |= (SysclkConfig->CoreDivider << SCG_RCCR_DIVCORE_SHIFT);
+    /* Wait until transition is completed */
+    while((IP_SMC->PMSTAT & SMC_PMSTAT_PMSTAT_MASK) != MCU_PMSTAT_RUN);
 
-    IP_SCG->RCCR &= ~SCG_RCCR_DIVBUS_MASK;
-    IP_SCG->RCCR |= (SysclkConfig->BusDivider << SCG_RCCR_DIVBUS_SHIFT);
+    /* Now MCU is really in RUN. Restore the desired RUN clock configuration here. */
+    MCU_ENABLE_FIRC();
+    MCU_ENABLE_SOSC();
+    MCU_ENABLE_SPLL();
 
-    IP_SCG->RCCR &= ~SCG_RCCR_DIVSLOW_MASK;
-    IP_SCG->RCCR |= (SysclkConfig->SlowDivider << SCG_RCCR_DIVSLOW_SHIFT);
+    IP_SCG->RCCR = (IP_SCG->RCCR & ~SCG_RCCR_SCS_MASK) | SCG_RCCR_SCS(Mcu_PreviousRunClockSource);
+
+    /* Wait until the requested source becomes the actual SYSCLK */
+    while ((IP_SCG->CSR & SCG_CSR_SCS_MASK) != SCG_CSR_SCS(Mcu_PreviousRunClockSource));
+    
+    Mcu_PowerModeStatus = MCU_NORMAL_RUN_MODE;
 
     return E_OK;
 }
 
+
+/**
+ * 
+ */
+static Std_ReturnType Mcu_lSwitchNormalRun_To_VeryLowPowerRun(void)
+{
+    /* Current mode must actually be Normal RUN */
+    if ((IP_SMC->PMSTAT & SMC_PMSTAT_PMSTAT_MASK)  != MCU_PMSTAT_RUN)
+    {
+        return E_NOT_OK;
+    }
+
+    /*Setup before switching to Very Low Power RUN */
+    MCU_ENABLE_SIRC();
+    IP_SCG->RCCR = (IP_SCG->RCCR & ~SCG_RCCR_SCS_MASK) | SCG_RCCR_SCS(MCU_SYSCLK_SIRC);
+
+    while((IP_SCG->CSR & SCG_CSR_SCS_MASK) != SCG_CSR_SCS(MCU_SYSCLK_SIRC))
+    {
+        // do nothing wait SIRC selected
+    }
+
+    Mcu_lConfigureVeryLowPowerRunClock();
+
+    /* Request Very Low Power RUN */
+    IP_SMC->PMCTRL =(IP_SMC->PMCTRL & ~SMC_PMCTRL_RUNM_MASK) | SMC_PMCTRL_RUNM(2U);
+
+    /* Wait until transition is completed */
+    while((IP_SMC->PMSTAT & SMC_PMSTAT_PMSTAT_MASK) != MCU_PMSTAT_VLPR);
+
+    Mcu_PowerModeStatus = MCU_VERY_LOW_POWER_RUN_MODE;
+
+    return E_OK;
+}
+
+/**
+ * 
+ */
+static inline void Mcu_lConfigureHighSpeedRunClock(void)
+{
+    uint32 RegValue = 0U;
+
+    RegValue |= SCG_HCCR_DIVCORE(MCU_CLOCK_CORE_DIV1);
+    RegValue |= SCG_HCCR_DIVBUS(MCU_CLOCK_BUS_DIV1);
+    RegValue |= SCG_HCCR_DIVSLOW(MCU_CLOCK_SLOW_DIV4);
+    RegValue |= SCG_HCCR_SCS(MCU_SYSCLK_SPLL);
+
+    IP_SCG->HCCR = RegValue;
+}
+
+/**
+ * 
+ */
+static Std_ReturnType Mcu_lSwitchNormalRun_To_HighSpeedRun(void)
+{
+    /* Current mode must actually be Normal RUN */
+    if ((IP_SMC->PMSTAT & SMC_PMSTAT_PMSTAT_MASK) != MCU_PMSTAT_RUN)
+    {
+        return E_NOT_OK;
+    }
+
+    /*
+     * Enable all clock sources required by the HSRUN configuration.
+     * HSRUN system clock can use FIRC or SPLL.
+     */
+    MCU_ENABLE_FIRC();
+    MCU_ENABLE_SOSC();
+    MCU_ENABLE_SPLL();
+
+    /* Configure HSRUN clock before entering HSRUN */
+    Mcu_lConfigureHighSpeedRunClock();
+
+    /* Allow transition to High Speed RUN */
+    IP_SMC->PMPROT |= SMC_PMPROT_AHSRUN_MASK;
+
+    /* Request High Speed RUN */
+    IP_SMC->PMCTRL =
+        (IP_SMC->PMCTRL & ~SMC_PMCTRL_RUNM_MASK) |
+        SMC_PMCTRL_RUNM(3U);
+
+    /* Wait until transition is completed */
+    while ((IP_SMC->PMSTAT & SMC_PMSTAT_PMSTAT_MASK) != MCU_PMSTAT_HSPR)
+    {
+    }
+
+    /* Confirm actual HSRUN system clock */
+    while ((IP_SCG->CSR & SCG_CSR_SCS_MASK) != SCG_CSR_SCS(MCU_SYSCLK_SPLL));
+
+
+    Mcu_PowerModeStatus = MCU_HIGH_SPEED_RUN_MODE;
+
+    return E_OK;
+}
+
+
+/**
+ * 
+ */
+static Std_ReturnType Mcu_lSwitchHighSpeedPowerRun_To_NormalRun(void)
+{
+    /* Current mode must actually be HSRUN */
+    if ((IP_SMC->PMSTAT & SMC_PMSTAT_PMSTAT_MASK) != MCU_PMSTAT_HSPR)
+    {
+        return E_NOT_OK;
+    }
+
+    /*
+     * Configure the Normal RUN clock profile before requesting
+     * the transition to Normal RUN.
+     */
+
+    /* Wait until RUN clock source becomes active */
+    while ((IP_SCG->CSR & SCG_CSR_SCS_MASK) != SCG_CSR_SCS(Mcu_PreviousRunClockSource));
+
+    /* Request Normal RUN */
+    IP_SMC->PMCTRL =(IP_SMC->PMCTRL & ~SMC_PMCTRL_RUNM_MASK) | SMC_PMCTRL_RUNM(0U);
+
+    /* Wait until transition is completed */
+    while ((IP_SMC->PMSTAT & SMC_PMSTAT_PMSTAT_MASK) != MCU_PMSTAT_RUN);
+
+    Mcu_PowerModeStatus = MCU_NORMAL_RUN_MODE;
+
+    return E_OK;
+}
 
 /* -------------------------------------------------------------------------- */
 /* MCU Driver API                                                             */
@@ -254,23 +557,36 @@ Std_ReturnType Mcu_InitClock(Mcu_ClockType ClockSetting)
     switch(ClockCfg->SystemClockSource)
     {
         case MCU_SYSCLK_SIRC:
-            Mcu_lInitSystemClock_SIRC(ClockCfg);
+            if(Mcu_lInitSystemClock_SIRC(ClockCfg) != E_OK)
+            {
+                return E_NOT_OK;
+            }
+            
             return E_OK;
-            break;
 
         case MCU_SYSCLK_FIRC:
-            Mcu_lInitSystemClock_FIRC(ClockCfg);
+            if(Mcu_lInitSystemClock_FIRC(ClockCfg) != E_OK)
+            {
+                return E_NOT_OK;
+            }
+            
             return E_OK;
-            break;
 
         case MCU_SYSCLK_SOSC:
-            Mcu_lInitSystemClock_SOSC(ClockCfg);
+            if(Mcu_lInitSystemClock_SOSC(ClockCfg) != E_OK)
+            {
+                return E_NOT_OK;
+            }
+            
             return E_OK;
-            break;
 
         case MCU_SYSCLK_SPLL:
-            return Mcu_lInitSystemClock_SPLL(ClockCfg);
-            break;
+            if(Mcu_lInitSystemClock_SPLL(ClockCfg) != E_OK)
+            {
+                return E_NOT_OK;
+            }
+
+            return E_OK;
         
         default:
             return E_NOT_OK;
@@ -315,7 +631,142 @@ Std_ReturnType Mcu_DistributePllClock(void)
     IP_SCG->RCCR |= (MCU_SYSCLK_SPLL << SCG_RCCR_SCS_SHIFT);
 
     /*wait SPLL switch actualy*/
-    while(!(IP_SCG->SPLLCSR & SCG_SPLLCSR_SPLLSEL_MASK));
+    while((IP_SCG->CSR & SCG_CSR_SCS_MASK) != SCG_CSR_SCS(MCU_SYSCLK_SPLL));
 
     return E_OK;
+}
+
+/**
+ * 
+ */
+Std_ReturnType Mcu_SetPowerMode(Mcu_PowerModeType Transition)
+{
+    /*Validate Transition parameter*/
+    if(Transition >= MCU_INVALID_MODE)
+    {
+        return E_NOT_OK;
+    }
+
+    Mcu_PreviousRunClockSource = Mcu_lGetCurrentSystemClockSource();
+
+    /*POWER MODE S32K14X FSM*/
+    switch(Transition)
+    {
+        case MCU_NORMAL_RUN_MODE:
+        {
+            if(Mcu_PowerModeStatus == MCU_NORMAL_RUN_MODE)   // Normal to normal->no action needed
+            {
+                return E_OK;
+            }
+            else if(Mcu_PowerModeStatus == MCU_VERY_LOW_POWER_RUN_MODE) // VLPR->Normal Run
+            {
+                if(Mcu_lSwitchVeryLowPowerRun_To_NormalRun() != E_OK)
+                {
+                    return E_NOT_OK;
+                }
+                /*Transition success*/
+                Mcu_PowerModeStatus = Transition;
+                return E_OK;
+            }
+            else if(Mcu_PowerModeStatus == MCU_HIGH_SPEED_RUN_MODE) // HSPR -> Normal Run
+            {
+                if(Mcu_lSwitchHighSpeedPowerRun_To_NormalRun() != E_OK)
+                {
+                    return E_NOT_OK;
+                }
+                /*Transition success*/
+                Mcu_PowerModeStatus = Transition;
+                return E_OK;
+            }
+            else
+            {
+                //At here variable Mcu_PowerModeStatus isn't expected
+                return E_NOT_OK;
+            }
+           
+        }/*end case MCU_NORMAL_RUN_MODE*/
+
+        case MCU_VERY_LOW_POWER_RUN_MODE:
+        {
+            if(Mcu_PowerModeStatus == MCU_NORMAL_RUN_MODE)   // Normal Run -> VLPR
+            {
+                if(Mcu_lSwitchNormalRun_To_VeryLowPowerRun() != E_OK)
+                {
+                    return E_NOT_OK;
+                }
+                /*Transition success*/
+                Mcu_PowerModeStatus = Transition;
+                return E_OK;
+            }
+            else if(Mcu_PowerModeStatus == MCU_VERY_LOW_POWER_RUN_MODE) // VLPR->VLPR
+            {
+                /*Ignore*/
+                return E_OK;
+            }
+            else if(Mcu_PowerModeStatus == MCU_HIGH_SPEED_RUN_MODE) // HSPR -> VLPR
+            {
+                /*According RM can't switch from HSPR to VLPR directly*/
+                return E_NOT_OK;
+            }
+            else
+            {
+                //At here variable Mcu_PowerModeStatus isn't expected
+                return E_NOT_OK;
+            }
+           
+        }/*end case MCU_VERY_LOW_POWER_RUN_MODE*/
+
+        case MCU_HIGH_SPEED_RUN_MODE:
+        {
+            if(Mcu_PowerModeStatus == MCU_NORMAL_RUN_MODE)   // Normal Run -> HSPR
+            {
+                if(Mcu_lSwitchNormalRun_To_HighSpeedRun() != E_OK)
+                {
+                    return E_NOT_OK;
+                }
+                /*Transition success*/
+                Mcu_PowerModeStatus = Transition;
+                return E_OK;
+            }
+            else if(Mcu_PowerModeStatus == MCU_VERY_LOW_POWER_RUN_MODE) // VLPR->HSPR
+            {
+                return E_NOT_OK;
+            }
+            else if(Mcu_PowerModeStatus == MCU_HIGH_SPEED_RUN_MODE) // HSPR -> HSPR
+            {
+                /*Ignored*/
+                return E_OK;
+            }
+            else
+            {
+                //At here variable Mcu_PowerModeStatus isn't expected
+                return E_NOT_OK;
+            }
+           
+        } /*end case MCU_HIGH_SPEED_RUN_MODE*/
+
+        default:
+            return E_NOT_OK;
+    }
+
+}
+
+/**
+ * @brief : SCG_OUT is SPLL clock
+ * @brief : SIM_CHIPCTL_CLKOUTSEL is SCG_OUT
+ * @brief : SIM_CHIPCTL_CLKOUTDIV divide 8 (0b111)
+ */
+void Mcu_ExGenerateClockout(void)
+{
+    IP_SCG->CLKOUTCNFG &= ~SCG_CLKOUTCNFG_CLKOUTSEL_MASK;
+    IP_SCG->CLKOUTCNFG |= SCG_CLKOUTCNFG_CLKOUTSEL(6U); // Select SPLL clock
+
+    /*Select clock source to SIM module*/
+    IP_SIM->CHIPCTL &= ~SIM_CHIPCTL_CLKOUTSEL_MASK;
+    IP_SIM->CHIPCTL |= SIM_CHIPCTL_CLKOUTSEL(0U);
+
+    IP_SIM->CHIPCTL &= SIM_CHIPCTL_CLKOUTDIV_MASK;
+    IP_SIM->CHIPCTL |= SIM_CHIPCTL_CLKOUTDIV(7U);
+
+    IP_SIM->CHIPCTL |= SIM_CHIPCTL_CLKOUTEN(1U);
 }

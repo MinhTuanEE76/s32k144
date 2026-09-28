@@ -7591,7 +7591,7 @@ typedef struct {
 #define LPIT_TMR_TCTRL_TSOI(x)                   (((uint32_t)(((uint32_t)(x)) << LPIT_TMR_TCTRL_TSOI_SHIFT)) & LPIT_TMR_TCTRL_TSOI_MASK)
 
 #define LPIT_TMR_TCTRL_TROT_MASK                 (0x40000U)
-#define LPIT_TMR_TCTRL_TROT_SHIFT                (18U)
+#define LPIT_TMR_TCTRL_TROT_SHIFT                (18U)  
 #define LPIT_TMR_TCTRL_TROT_WIDTH                (1U)
 #define LPIT_TMR_TCTRL_TROT(x)                   (((uint32_t)(((uint32_t)(x)) << LPIT_TMR_TCTRL_TROT_SHIFT)) & LPIT_TMR_TCTRL_TROT_MASK)
 
