@@ -1,0 +1,17 @@
+-T
+"C:/Users/TuanNM160/USER-NMT/Training_Program/MCU_Training/CODE/Clock_Configuration/Project_Settings/Linker_Files/S32K144_64_flash.ld"
+-Wl,-Map,"Clock_Configuration.map"
+-Xlinker
+--gc-sections
+-n
+-mcpu=cortex-m4
+-specs=rdimon.specs
+"./Project_Settings/Startup_Code/startup.o"
+"./Project_Settings/Startup_Code/startup_S32K144.o"
+"./Project_Settings/Startup_Code/system_S32K144.o"
+"./driver/Gpt/Gpt.o"
+"./driver/Gpt/Gpt_Irq.o"
+"./driver/Gpt/Gpt_PBCfg.o"
+"./driver/Mcu/Mcu.o"
+"./driver/Mcu/Mcu_Cfg.o"
+"./src/main.o"

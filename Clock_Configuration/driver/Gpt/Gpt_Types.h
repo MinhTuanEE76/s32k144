@@ -85,14 +85,7 @@ typedef void (*Gpt_NotificationType)(void);
  * For this S32K144 implementation, this value identifies the clock
  * reference used by a GPT channel.
  */
-typedef enum
-{
-    GPT_LPIT_CLOCK_SOURCE_SOSCDIV2_CLK = 1U,     
-    GPT_LPIT_CLOCK_SOURCE_SIRCDIV2_CLK = 2U,
-    GPT_LPIT_CLOCK_SOURCE_FIRCDIV2_CLK = 3U,      
-    GPT_LPIT_CLOCK_SOURCE_SPLLDIV2_CLK = 6U,      
-    GPT_LPIT_CLOCK_SOURCE_LPO128_CLK   = 7U    
-} Gpt_ClockReferencePointType;
+typedef uint8 Gpt_ClockReferencePointType;
 
 /**
  * @brief GPT channel configuration.
@@ -108,6 +101,7 @@ typedef struct
     Gpt_ValueType               ChannelTickValueMax;
     boolean                     EnableWakeup;
     Gpt_NotificationType        Notification;
+    Gpt_ClockReferencePointType ChannelClkSrcRef;
 } Gpt_ChannelConfigType;
 
 /**
@@ -121,7 +115,6 @@ typedef struct
 typedef struct
 {
     const Gpt_ChannelConfigType *Channels;
-    Gpt_ClockReferencePointType LpitClkSrc;
     uint8                       ChannelCfgNumber;
 } Gpt_ConfigType;
 

@@ -1,0 +1,7 @@
+-c
+-I"C:/Users/TuanNM160/USER-NMT/Training_Program/MCU_Training/CODE/Clock_Configuration/include"
+-x assembler-with-cpp
+-DSTART_FROM_FLASH
+-g3
+-mcpu=cortex-m4
+-specs=rdimon.specs

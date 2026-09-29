@@ -49,13 +49,15 @@ static const IRQn_Type Gpt_ChannelIrq[GPT_CHANNEL_COUNT] =
 
 static const Gpt_ChannelConfigType *Gpt_lGetChannelConfig(Gpt_ChannelType Channel)
 {
+    uint8 i;
 
-    if ((Gpt_ConfigPtr == NULL_PTR) || (Gpt_ConfigPtr->Channels == NULL_PTR))
+    if ((Gpt_ConfigPtr == NULL_PTR) ||
+        (Gpt_ConfigPtr->Channels == NULL_PTR))
     {
         return NULL_PTR;
     }
 
-    for (uint8 i = 0U; i < Gpt_ConfigPtr->ChannelCfgNumber; i++)
+    for (i = 0U; i < Gpt_ConfigPtr->ChannelCfgNumber; i++)
     {
         if (Gpt_ConfigPtr->Channels[i].ChannelId == Channel)
         {
@@ -87,62 +89,43 @@ static boolean Gpt_lIsValidChannel(Gpt_ChannelType Channel)
 
 
 /**
+ * @brief Returns the LPIT interrupt/event bit corresponding to a channel.
+ */
+static inline uint32 Gpt_lGetChannelBit(Gpt_ChannelType Channel)
+{
+    return (1UL << Channel);
+}
+
+
+/**
  * @brief Disable one LPIT timer channel.
  */
-static inline void Gpt_lDisableHardwareTimer(Gpt_ChannelType Channel)
+static void Gpt_lDisableHardwareTimer(Gpt_ChannelType Channel)
 {
-    switch (Channel)
-    {
-        case GPT_CHANNEL_ID0:
-            IP_LPIT0->CLRTEN = LPIT_CLRTEN_CLR_T_EN_0(1U);
-            break;
-
-        case GPT_CHANNEL_ID1:
-            IP_LPIT0->CLRTEN = LPIT_CLRTEN_CLR_T_EN_1(1U);
-            break;
-
-        case GPT_CHANNEL_ID2:
-            IP_LPIT0->CLRTEN = LPIT_CLRTEN_CLR_T_EN_2(1U);
-            break;
-
-        case GPT_CHANNEL_ID3:
-            IP_LPIT0->CLRTEN = LPIT_CLRTEN_CLR_T_EN_3(1U);
-            break;
-
-        default:
-            /* Invalid channel - should never occur */
-            break;
-    }
+    IP_LPIT0->CLRTEN = LPIT_CLRTEN_CLR_T_EN_0(
+                           (Channel == 0U) ? 1U : 0U)
+                     | LPIT_CLRTEN_CLR_T_EN_1(
+                           (Channel == 1U) ? 1U : 0U)
+                     | LPIT_CLRTEN_CLR_T_EN_2(
+                           (Channel == 2U) ? 1U : 0U)
+                     | LPIT_CLRTEN_CLR_T_EN_3(
+                           (Channel == 3U) ? 1U : 0U);
 }
 
 
 /**
  * @brief Enable one LPIT timer channel.
  */
-static inline void Gpt_lEnableHardwareTimer(Gpt_ChannelType Channel)
+static void Gpt_lEnableHardwareTimer(Gpt_ChannelType Channel)
 {
-    switch (Channel)
-    {
-        case GPT_CHANNEL_ID0:
-            IP_LPIT0->SETTEN = LPIT_SETTEN_SET_T_EN_0(1U);
-            break;
-
-        case GPT_CHANNEL_ID1:
-            IP_LPIT0->SETTEN = LPIT_SETTEN_SET_T_EN_1(1U);
-            break;
-
-        case GPT_CHANNEL_ID2:
-            IP_LPIT0->SETTEN = LPIT_SETTEN_SET_T_EN_2(1U);
-            break;
-
-        case GPT_CHANNEL_ID3:
-            IP_LPIT0->SETTEN = LPIT_SETTEN_SET_T_EN_3(1U);
-            break;
-
-        default:
-            /* Invalid channel */
-            break;
-    }
+    IP_LPIT0->SETTEN = LPIT_SETTEN_SET_T_EN_0(
+                           (Channel == 0U) ? 1U : 0U)
+                     | LPIT_SETTEN_SET_T_EN_1(
+                           (Channel == 1U) ? 1U : 0U)
+                     | LPIT_SETTEN_SET_T_EN_2(
+                           (Channel == 2U) ? 1U : 0U)
+                     | LPIT_SETTEN_SET_T_EN_3(
+                           (Channel == 3U) ? 1U : 0U);
 }
 
 
@@ -153,7 +136,7 @@ static inline void Gpt_lEnableHardwareTimer(Gpt_ChannelType Channel)
  */
 static void Gpt_lClearInterruptFlag(Gpt_ChannelType Channel)
 {
-    IP_LPIT0->MSR |= (1U << Channel);
+    IP_LPIT0->MSR = Gpt_lGetChannelBit(Channel);
 }
 
 
@@ -233,55 +216,23 @@ static Gpt_ValueType Gpt_lGetRunningElapsed(Gpt_ChannelType Channel)
  *     TRG_SRC  = 0
  *     TRG_SEL  = 0
  */
-static void Gpt_lConfigureChannel(Gpt_ChannelType Channel,const Gpt_ChannelConfigType *ChannelConfig)
+static void Gpt_lConfigureChannel(Gpt_ChannelType Channel)
 {
-    uint32 Tctrl = 0U;
-
-    /*
-     * Configure LPIT timer channel for GPT one-shot or continuous mode.
-     */
-    switch (ChannelConfig->ChannelMode)
-    {
-        case GPT_CHANNEL_MODE_ONESHOT:
-            /* Timer runs for one period and is stopped by GPT ISR. */
-            Tctrl |= LPIT_TMR_TCTRL_TSOI(1U);
-            break;
-
-        case GPT_CHANNEL_MODE_CONTINUOUS:
-            /* Timer automatically continues/reloads after timeout. */
-            Tctrl |= LPIT_TMR_TCTRL_TSOI(0U);
-            break;
-
-        default:
-            /* Invalid configuration: use safe default. */
-            Tctrl = 0U;
-            break;
-    }
-
-    /*
-     * Fixed LPIT configuration:
-     * - Timer mode: 0
-     * - Chaining: disabled
-     * - Trigger start: disabled
-     * - Trigger source: internal
-     * - Trigger select: default
-     * - Reload on trigger: disabled
-     */
-    Tctrl |= LPIT_TMR_TCTRL_MODE(0U)
-           | LPIT_TMR_TCTRL_CHAIN(0U)
-           | LPIT_TMR_TCTRL_TSOT(0U)
-           | LPIT_TMR_TCTRL_TROT(0U)
-           | LPIT_TMR_TCTRL_TRG_SRC(0U)
-           | LPIT_TMR_TCTRL_TRG_SEL(0U);
-
-    IP_LPIT0->TMR[Channel].TCTRL = Tctrl;
+    IP_LPIT0->TMR[Channel].TCTRL =
+          LPIT_TMR_TCTRL_MODE(0U)
+        | LPIT_TMR_TCTRL_CHAIN(0U)
+        | LPIT_TMR_TCTRL_TSOT(0U)
+        | LPIT_TMR_TCTRL_TSOI(0U)
+        | LPIT_TMR_TCTRL_TROT(0U)
+        | LPIT_TMR_TCTRL_TRG_SRC(0U)
+        | LPIT_TMR_TCTRL_TRG_SEL(0U);
 }
 
 
 /**
  * @brief Configure LPIT0 peripheral clock.
  */
-static inline void Gpt_lEnableLpitClock(Gpt_ClockReferencePointType LpitClockSource)
+static void Gpt_lEnableLpitClock(void)
 {
     /*
      * Disable clock gate before changing PCS.
@@ -289,7 +240,7 @@ static inline void Gpt_lEnableLpitClock(Gpt_ClockReferencePointType LpitClockSou
     IP_PCC->PCCn[PCC_LPIT_INDEX] &= ~PCC_PCCn_CGC_MASK;
 
     IP_PCC->PCCn[PCC_LPIT_INDEX] &= ~PCC_PCCn_PCS_MASK;
-    IP_PCC->PCCn[PCC_LPIT_INDEX] |= PCC_PCCn_PCS(LpitClockSource);
+    IP_PCC->PCCn[PCC_LPIT_INDEX] |= PCC_PCCn_PCS(GPT_LPIT_CLOCK_SOURCE);
 
     /*
      * Enable LPIT peripheral clock.
@@ -325,6 +276,8 @@ static void Gpt_lResetRuntimeChannel(Gpt_ChannelType Channel)
  */
 void Gpt_Init(const Gpt_ConfigType *ConfigPtr)
 {
+    uint8 i;
+    uint32 ChannelMask = 0UL;
 
     if (ConfigPtr == NULL_PTR)
     {
@@ -350,7 +303,7 @@ void Gpt_Init(const Gpt_ConfigType *ConfigPtr)
     Gpt_ConfigPtr = ConfigPtr;
 
     /* Enable peripheral clock in PCC. */
-    Gpt_lEnableLpitClock(ConfigPtr->LpitClkSrc);
+    Gpt_lEnableLpitClock();
 
     /*
      * Enable LPIT module clock.
@@ -361,19 +314,18 @@ void Gpt_Init(const Gpt_ConfigType *ConfigPtr)
     IP_LPIT0->MCR |= LPIT_MCR_M_CEN(1U);
 
     /* Disable all configured timer channels first. */
-    for (uint8 i = 0U; i < Gpt_ConfigPtr->ChannelCfgNumber; i++)
+    for (i = 0U; i < Gpt_ConfigPtr->ChannelCfgNumber; i++)
     {
         Gpt_ChannelType Channel = Gpt_ConfigPtr->Channels[i].ChannelId;
 
         if (Gpt_lIsValidChannel(Channel))
         {
+            ChannelMask |= Gpt_lGetChannelBit(Channel);
+
             Gpt_lDisableHardwareTimer(Channel);
-
             Gpt_lClearInterruptFlag(Channel);
+            Gpt_lConfigureChannel(Channel);
 
-            Gpt_lConfigureChannel(Channel, Gpt_lGetChannelConfig(Channel));
-
-            /*Reset Timer Value*/
             IP_LPIT0->TMR[Channel].TVAL = 0UL;
 
             Gpt_lResetRuntimeChannel(Channel);
@@ -390,7 +342,7 @@ void Gpt_Init(const Gpt_ConfigType *ConfigPtr)
     /*
      * Disable interrupt requests for all configured channels.
      */
-    IP_LPIT0->MIER = 0;
+    IP_LPIT0->MIER &= ~ChannelMask;
 
     Gpt_DriverStatus = GPT_DRIVER_INIT;
 }
@@ -401,6 +353,8 @@ void Gpt_Init(const Gpt_ConfigType *ConfigPtr)
  */
 void Gpt_DeInit(void)
 {
+    uint8 i;
+
     if (Gpt_DriverStatus == GPT_DRIVER_UNINIT)
     {
         return;
@@ -409,24 +363,28 @@ void Gpt_DeInit(void)
     /*
      * AUTOSAR GPT DeInit shall not deinitialize while a timer is running.
      */
-    for (uint8 i = 0U; i < Gpt_ConfigPtr->ChannelCfgNumber; i++)
+    for (i = 0U; i < Gpt_ConfigPtr->ChannelCfgNumber; i++)
     {
-        Gpt_ChannelType Channel = Gpt_ConfigPtr->Channels[i].ChannelId;
+        Gpt_ChannelType Channel =
+            Gpt_ConfigPtr->Channels[i].ChannelId;
 
-        if (Gpt_ChannelRuntime[Channel].Status == GPT_CHANNEL_RUNNING)
+        if (Gpt_ChannelRuntime[Channel].Status ==
+            GPT_CHANNEL_RUNNING)
         {
             return;
         }
     }
 
-    for (uint8 i = 0U; i < Gpt_ConfigPtr->ChannelCfgNumber; i++)
+    for (i = 0U; i < Gpt_ConfigPtr->ChannelCfgNumber; i++)
     {
-        Gpt_ChannelType Channel = Gpt_ConfigPtr->Channels[i].ChannelId;
+        Gpt_ChannelType Channel =
+            Gpt_ConfigPtr->Channels[i].ChannelId;
 
         Gpt_lDisableHardwareTimer(Channel);
         Gpt_lClearInterruptFlag(Channel);
 
-        IP_LPIT0->MIER &= ~Gpt_lGetChannelBit(Channel);
+        IP_LPIT0->MIER &=
+            ~Gpt_lGetChannelBit(Channel);
 
         Gpt_lResetRuntimeChannel(Channel);
     }
@@ -434,16 +392,20 @@ void Gpt_DeInit(void)
     /*
      * Disable LPIT module clock.
      */
-    IP_LPIT0->MCR &= ~LPIT_MCR_M_CEN_MASK;
+    IP_LPIT0->MCR &=
+        ~LPIT_MCR_M_CEN_MASK;
 
     /*
      * Disable LPIT peripheral clock gate.
      */
-    IP_PCC->PCCn[PCC_LPIT_INDEX] &= ~PCC_PCCn_CGC_MASK;
+    IP_PCC->PCCn[PCC_LPIT_INDEX] &=
+        ~PCC_PCCn_CGC_MASK;
 
-    Gpt_ConfigPtr = NULL_PTR;
+    Gpt_ConfigPtr =
+        NULL_PTR;
 
-    Gpt_DriverStatus = GPT_DRIVER_UNINIT;
+    Gpt_DriverStatus =
+        GPT_DRIVER_UNINIT;
 }
 
 
@@ -452,7 +414,8 @@ void Gpt_DeInit(void)
  */
 Gpt_ValueType Gpt_GetTimeElapsed(Gpt_ChannelType Channel)
 {
-    if ((Gpt_DriverStatus == GPT_DRIVER_UNINIT) || (!Gpt_lIsValidChannel(Channel)))
+    if ((Gpt_DriverStatus == GPT_DRIVER_UNINIT) ||
+        (!Gpt_lIsValidChannel(Channel)))
     {
         return 0UL;
     }
@@ -483,7 +446,8 @@ Gpt_ValueType Gpt_GetTimeElapsed(Gpt_ChannelType Channel)
  */
 Gpt_ValueType Gpt_GetTimeRemaining(Gpt_ChannelType Channel)
 {
-    if ((Gpt_DriverStatus == GPT_DRIVER_UNINIT) || (!Gpt_lIsValidChannel(Channel)))
+    if ((Gpt_DriverStatus == GPT_DRIVER_UNINIT) ||
+        (!Gpt_lIsValidChannel(Channel)))
     {
         return 0UL;
     }
@@ -512,16 +476,19 @@ Gpt_ValueType Gpt_GetTimeRemaining(Gpt_ChannelType Channel)
 /**
  * @brief Starts a GPT timer.
  */
-void Gpt_StartTimer(Gpt_ChannelType Channel, Gpt_ValueType Value)
+void Gpt_StartTimer(Gpt_ChannelType Channel,
+                    Gpt_ValueType Value)
 {
     const Gpt_ChannelConfigType *ChannelConfig;
 
-    if ((Gpt_DriverStatus == GPT_DRIVER_UNINIT) || (!Gpt_lIsValidChannel(Channel)))
+    if ((Gpt_DriverStatus == GPT_DRIVER_UNINIT) ||
+        (!Gpt_lIsValidChannel(Channel)))
     {
         return;
     }
 
-    ChannelConfig = Gpt_lGetChannelConfig(Channel);
+    ChannelConfig =
+        Gpt_lGetChannelConfig(Channel);
 
     if (ChannelConfig == NULL_PTR)
     {
@@ -531,7 +498,8 @@ void Gpt_StartTimer(Gpt_ChannelType Channel, Gpt_ValueType Value)
     /*
      * AUTOSAR GPT does not accept zero timer values.
      */
-    if ((Value == 0UL) || (Value > ChannelConfig->ChannelTickValueMax))
+    if ((Value == 0UL) ||
+        (Value > ChannelConfig->ChannelTickValueMax))
     {
         return;
     }
@@ -539,7 +507,8 @@ void Gpt_StartTimer(Gpt_ChannelType Channel, Gpt_ValueType Value)
     /*
      * Do not restart an already running channel.
      */
-    if (Gpt_ChannelRuntime[Channel].Status == GPT_CHANNEL_RUNNING)
+    if (Gpt_ChannelRuntime[Channel].Status ==
+        GPT_CHANNEL_RUNNING)
     {
         return;
     }
@@ -557,7 +526,7 @@ void Gpt_StartTimer(Gpt_ChannelType Channel, Gpt_ValueType Value)
     /*
      * Reconfigure channel in case the previous operation changed it.
      */
-    Gpt_lConfigureChannel(Channel, Gpt_lGetChannelConfig(Channel));
+    Gpt_lConfigureChannel(Channel);
 
     /*
      * LPIT counter:
@@ -566,15 +535,20 @@ void Gpt_StartTimer(Gpt_ChannelType Channel, Gpt_ValueType Value)
      *
      * so that a requested Value represents Value timer periods.
      */
-    IP_LPIT0->TMR[Channel].TVAL = Value - 1UL;
+    IP_LPIT0->TMR[Channel].TVAL =
+        Value - 1UL;
 
-    Gpt_ChannelTargetValue[Channel] = Value;
+    Gpt_ChannelTargetValue[Channel] =
+        Value;
 
-    Gpt_ChannelElapsedValue[Channel] = 0UL;
+    Gpt_ChannelElapsedValue[Channel] =
+        0UL;
 
-    Gpt_ChannelRemainingValue[Channel] = Value;
+    Gpt_ChannelRemainingValue[Channel] =
+        Value;
 
-    Gpt_ChannelRuntime[Channel].Status = GPT_CHANNEL_RUNNING;
+    Gpt_ChannelRuntime[Channel].Status =
+        GPT_CHANNEL_RUNNING;
 
     /*
      * Enable the LPIT timer channel.
@@ -588,12 +562,16 @@ void Gpt_StartTimer(Gpt_ChannelType Channel, Gpt_ValueType Value)
  */
 void Gpt_StopTimer(Gpt_ChannelType Channel)
 {
-    if ((Gpt_DriverStatus == GPT_DRIVER_UNINIT) || (!Gpt_lIsValidChannel(Channel)))
+    Gpt_ValueType Remaining;
+
+    if ((Gpt_DriverStatus == GPT_DRIVER_UNINIT) ||
+        (!Gpt_lIsValidChannel(Channel)))
     {
         return;
     }
 
-    if (Gpt_ChannelRuntime[Channel].Status != GPT_CHANNEL_RUNNING)
+    if (Gpt_ChannelRuntime[Channel].Status !=
+        GPT_CHANNEL_RUNNING)
     {
         return;
     }
@@ -601,9 +579,14 @@ void Gpt_StopTimer(Gpt_ChannelType Channel)
     /*
      * Read the remaining value before stopping the counter.
      */
-    Gpt_ChannelRemainingValue[Channel] = Gpt_lGetRunningRemaining(Channel);
+    Remaining =
+        Gpt_lGetRunningRemaining(Channel);
 
-    Gpt_ChannelElapsedValue[Channel] = Gpt_ChannelTargetValue[Channel] - Gpt_ChannelRemainingValue[Channel];
+    Gpt_ChannelRemainingValue[Channel] =
+        Remaining;
+
+    Gpt_ChannelElapsedValue[Channel] =
+        Gpt_ChannelTargetValue[Channel] - Remaining;
 
     /*
      * Stop hardware timer.
@@ -615,7 +598,8 @@ void Gpt_StopTimer(Gpt_ChannelType Channel)
      */
     Gpt_lClearInterruptFlag(Channel);
 
-    Gpt_ChannelRuntime[Channel].Status = GPT_CHANNEL_STOPPED;
+    Gpt_ChannelRuntime[Channel].Status =
+        GPT_CHANNEL_STOPPED;
 }
 
 
@@ -782,24 +766,29 @@ void Gpt_lProcessChannelInterrupt(Gpt_ChannelType Channel)
  *
  * Implementation extension, not part of the AUTOSAR GPT API.
  */
-Gpt_ValueType Gpt_MsToTicks(Gpt_ChannelType Channel, uint32 Milliseconds)
+Gpt_ValueType Gpt_MsToTicks(Gpt_ChannelType Channel,
+                            uint32 Milliseconds)
 {
-    const Gpt_ChannelConfigType *ChannelConfig = NULL_PTR;
-    uint64 TickValue = 0ULL;
+    const Gpt_ChannelConfigType *ChannelConfig;
+    uint64 TickValue;
 
-    if ((Gpt_DriverStatus == GPT_DRIVER_UNINIT) || (!Gpt_lIsValidChannel(Channel)))
+    if ((Gpt_DriverStatus == GPT_DRIVER_UNINIT) ||
+        (!Gpt_lIsValidChannel(Channel)))
     {
         return 0UL;
     }
 
-    ChannelConfig = Gpt_lGetChannelConfig(Channel);
+    ChannelConfig =
+        Gpt_lGetChannelConfig(Channel);
 
     if (ChannelConfig == NULL_PTR)
     {
         return 0UL;
     }
 
-    TickValue = ((uint64)GPT_TICK_FREQUENCY_HZ *(uint64)Milliseconds) / 1000ULL;
+    TickValue =
+        ((uint64)ChannelConfig->ChannelTickFrequency *
+         (uint64)Milliseconds) / 1000ULL;
 
     if (TickValue > (uint64)ChannelConfig->ChannelTickValueMax)
     {

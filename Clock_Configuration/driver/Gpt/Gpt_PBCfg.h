@@ -4,7 +4,7 @@
 #include "Gpt_Types.h"
 
 /* -------------------------------------------------------------------------- */
-/* GPT Define                                                                 */
+/* GPT compile-time configuration                                             */
 /* -------------------------------------------------------------------------- */
 
 #define GPT_CHANNEL_COUNT                       (4U)
@@ -14,11 +14,6 @@
 #define GPT_CHANNEL_ID2                         (Gpt_ChannelType)(2U)
 #define GPT_CHANNEL_ID3                         (Gpt_ChannelType)(3U)
 
-#define GPT_LPIT_CLOCK_SOURCE_SOSCDIV2_CLK      (uint8)(1U)
-#define GPT_LPIT_CLOCK_SOURCE_SIRCDIV2_CLK      (uint8)(2U)
-#define GPT_LPIT_CLOCK_SOURCE_FIRCDIV2_CLK      (uint8)(3U)
-#define GPT_LPIT_CLOCK_SOURCE_SPLLDIV2_CLK      (uint8)(6U)
-#define GPT_LPIT_CLOCK_SOURCE_LPO128_CLK        (uint8)(7U)
 /*
  * LPIT0 clock source:
  * PCS = 6 -> SPLL2_DIV2_CLK
@@ -28,8 +23,8 @@
  *
  * This value must match the actual clock configured by the Mcu driver.
  */
-#define GPT_LPIT_CLOCK_SOURCE                   GPT_LPIT_CLOCK_SOURCE_SPLLDIV2_CLK
-#define GPT_TICK_FREQUENCY_HZ                   (1000000U)
+#define GPT_LPIT_CLOCK_SOURCE                   (6U)
+#define GPT_LPIT_CLOCK_FREQUENCY_HZ             (40000000UL)
 
 /* -------------------------------------------------------------------------- */
 /* Optional AUTOSAR GPT functionality                                         */
@@ -37,7 +32,7 @@
 
 #define GPT_VERSION_INFO_API                    STD_ON
 #define GPT_DEINIT_API                          STD_ON
-#define GPT_ENABLE_DISABLE_NOTIFICATION_API     STD_ON
+#define GPT_ENABLE_DISABLE_NOTIFICATION_API    STD_ON
 
 #define GPT_WAKEUP_FUNCTIONALITY_API            STD_OFF
 #define GPT_PREDEF_TIMER_API                    STD_OFF
@@ -47,6 +42,10 @@
  * implementation.
  */
 #define GPT_DEV_ERROR_DETECT                    STD_OFF
+
+/* -------------------------------------------------------------------------- */
+/* Version information                                                         */
+/* -------------------------------------------------------------------------- */
 
 
 

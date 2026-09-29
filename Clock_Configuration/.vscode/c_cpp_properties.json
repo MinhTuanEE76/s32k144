@@ -1,0 +1,26 @@
+{
+    "configurations": [
+        {
+            "name": "STM32F407",
+            "includePath": [
+                "${workspaceFolder}/Intergration",
+                "${workspaceFolder}/driver/Mcu",
+                "${workspaceFolder}/include"
+            ],
+            "defines": [
+                "S32K144"
+            ],
+            "compilerPath": "C:/GCC_Toolchain/bin/arm-none-eabi-gcc.exe",
+            "cStandard": "gnu11",
+            "intelliSenseMode": "gcc-arm",
+            "browse": {
+                "path": [
+                    "${workspaceFolder}/Intergration",
+                    "${workspaceFolder}/driver/Mcu",
+                    "${workspaceFolder}/include"
+                ]
+            }
+        }
+    ],
+    "version": 4
+}

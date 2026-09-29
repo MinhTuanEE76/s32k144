@@ -95,6 +95,7 @@ void Gpt_lProcessChannelInterrupt(Gpt_ChannelType Channel);
  * This function is an implementation extension and is not part of the
  * AUTOSAR GPT standard API.
  */
-Gpt_ValueType Gpt_MsToTicks(Gpt_ChannelType Channel, uint32 Milliseconds);
+Gpt_ValueType Gpt_MsToTicks(Gpt_ChannelType Channel,
+                            uint32 Milliseconds);
 
 #endif /* GPT_H */

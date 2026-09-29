@@ -27,6 +27,7 @@ const Gpt_ChannelConfigType Gpt_ChannelConfigSet[GPT_CHANNEL_COUNT] =
         .ChannelTickValueMax  = 0xFFFFFFFFUL,
         .EnableWakeup         = FALSE,
         .Notification         = NULL_PTR,
+        .ChannelClkSrcRef     = 0U
     },
 
     {
@@ -36,6 +37,7 @@ const Gpt_ChannelConfigType Gpt_ChannelConfigSet[GPT_CHANNEL_COUNT] =
         .ChannelTickValueMax  = 0xFFFFFFFFUL,
         .EnableWakeup         = FALSE,
         .Notification         = NULL_PTR,
+        .ChannelClkSrcRef     = 0U
     },
 
     {
@@ -45,6 +47,7 @@ const Gpt_ChannelConfigType Gpt_ChannelConfigSet[GPT_CHANNEL_COUNT] =
         .ChannelTickValueMax  = 0xFFFFFFFFUL,
         .EnableWakeup         = FALSE,
         .Notification         = NULL_PTR,
+        .ChannelClkSrcRef     = 0U
     },
 
     {
@@ -54,6 +57,7 @@ const Gpt_ChannelConfigType Gpt_ChannelConfigSet[GPT_CHANNEL_COUNT] =
         .ChannelTickValueMax  = 0xFFFFFFFFUL,
         .EnableWakeup         = FALSE,
         .Notification         = NULL_PTR,
+        .ChannelClkSrcRef     = 0U
     }
 };
 
@@ -64,6 +68,5 @@ const Gpt_ChannelConfigType Gpt_ChannelConfigSet[GPT_CHANNEL_COUNT] =
 const Gpt_ConfigType Gpt_Config =
 {
     .Channels         = Gpt_ChannelConfigSet,
-    .LpitClkSrc       = GPT_LPIT_CLOCK_SOURCE_FIRCDIV2_CLK,
     .ChannelCfgNumber = GPT_CHANNEL_COUNT
 };

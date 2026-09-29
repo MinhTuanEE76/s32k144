@@ -1,0 +1,13 @@
+-DCPU_S32K144HFT0VLLT
+-I"C:/Users/TuanNM160/USER-NMT/Training_Program/MCU_Training/CODE/Clock_Configuration/driver/Mcu"
+-I"C:/Users/TuanNM160/USER-NMT/Training_Program/MCU_Training/CODE/Clock_Configuration/Intergration"
+-I"C:/Users/TuanNM160/USER-NMT/Training_Program/MCU_Training/CODE/Clock_Configuration/include"
+-O0
+-g3
+-Wall
+-c
+-fmessage-length=0
+-ffunction-sections
+-fdata-sections
+-mcpu=cortex-m4
+-specs=rdimon.specs
